@@ -53,6 +53,7 @@ import { IUserDataProfilesService, reviveProfile } from '../../platform/userData
 import { UserDataProfilesService } from '../../platform/userDataProfile/common/userDataProfileIpc.js';
 import { PolicyChannelClient } from '../../platform/policy/common/policyIpc.js';
 import { CopilotManagedSettingsChannelClient } from '../../platform/policy/common/copilotManagedSettingsIpc.js';
+import { FileManagedSettingsChannelClient } from '../../platform/policy/common/fileManagedSettingsIpc.js';
 import { IPolicyService } from '../../platform/policy/common/policy.js';
 import { UserDataProfileService } from '../services/userDataProfile/common/userDataProfileService.js';
 import { IUserDataProfileService } from '../services/userDataProfile/common/userDataProfile.js';
@@ -220,7 +221,8 @@ export class DesktopMain extends Disposable {
 		let policyService: IPolicyService;
 		const policyChannel = this.configuration.policiesData ? this._register(new PolicyChannelClient(this.configuration.policiesData, mainProcessService.getChannel('policy'))) : undefined;
 		const copilotManagedSettings = this._register(new CopilotManagedSettingsChannelClient(mainProcessService.getChannel('copilotManagedSettings')));
-		const accountPolicy = this._register(new AccountPolicyService(logService, defaultAccountService, policyChannel, copilotManagedSettings));
+		const fileManagedSettings = this._register(new FileManagedSettingsChannelClient(mainProcessService.getChannel('fileManagedSettings')));
+		const accountPolicy = this._register(new AccountPolicyService(logService, defaultAccountService, policyChannel, copilotManagedSettings, fileManagedSettings));
 		if (policyChannel) {
 			policyService = this._register(new MultiplexPolicyService([policyChannel, accountPolicy], logService));
 		} else {

@@ -16,7 +16,7 @@ import { IPathWithLineAndColumn, isValidBasename, parseLineAndColumnAware, sanit
 import { Event } from '../../base/common/event.js';
 import { getPathLabel } from '../../base/common/labels.js';
 import { Schemas } from '../../base/common/network.js';
-import { basename, resolve } from '../../base/common/path.js';
+import { basename, join, resolve } from '../../base/common/path.js';
 import { mark } from '../../base/common/performance.js';
 import { IProcessEnvironment, isLinux, isMacintosh, isWindows, OS } from '../../base/common/platform.js';
 import { cwd } from '../../base/common/process.js';
@@ -64,7 +64,8 @@ import { IPolicyService, NullPolicyService } from '../../platform/policy/common/
 import { NativePolicyService } from '../../platform/policy/node/nativePolicyService.js';
 import { FilePolicyService } from '../../platform/policy/common/filePolicyService.js';
 import { MultiplexPolicyService } from '../../platform/policy/common/multiplexPolicyService.js';
-import { GITHUB_COPILOT_MACOS_BUNDLE_ID, GITHUB_COPILOT_WIN32_POLICY_NAME, GITHUB_COPILOT_WIN32_REGISTRY_PATH, ICopilotManagedSettingsService, NullCopilotManagedSettingsService } from '../../platform/policy/common/copilotManagedSettings.js';
+import { GITHUB_COPILOT_MACOS_BUNDLE_ID, GITHUB_COPILOT_WIN32_POLICY_NAME, GITHUB_COPILOT_WIN32_REGISTRY_PATH, ICopilotManagedSettingsService, IFileManagedSettingsService, MANAGED_SETTINGS_FILE_NAME, MANAGED_SETTINGS_LINUX_FILE_PATH, MANAGED_SETTINGS_MACOS_FILE_PATH, MANAGED_SETTINGS_WINDOWS_DIR, NullCopilotManagedSettingsService, NullFileManagedSettingsService } from '../../platform/policy/common/copilotManagedSettings.js';
+import { FileManagedSettingsService } from '../../platform/policy/common/fileManagedSettingsService.js';
 import { CopilotManagedSettingsService } from '../../platform/policy/node/copilotManagedSettingsService.js';
 import { DisposableStore } from '../../base/common/lifecycle.js';
 import { IUriIdentityService } from '../../platform/uriIdentity/common/uriIdentity.js';
@@ -239,6 +240,25 @@ class CodeMain {
 			services.set(ICopilotManagedSettingsService, copilotManagedSettingsService);
 		} else {
 			services.set(ICopilotManagedSettingsService, new NullCopilotManagedSettingsService());
+		}
+
+		// File-based managed settings
+		let fileManagedSettingsPath: string | undefined;
+		if (isWindows) {
+			const programData = process.env.ProgramData;
+			if (programData) {
+				fileManagedSettingsPath = join(programData, MANAGED_SETTINGS_WINDOWS_DIR, MANAGED_SETTINGS_FILE_NAME);
+			}
+		} else if (isMacintosh) {
+			fileManagedSettingsPath = MANAGED_SETTINGS_MACOS_FILE_PATH;
+		} else if (isLinux) {
+			fileManagedSettingsPath = MANAGED_SETTINGS_LINUX_FILE_PATH;
+		}
+		if (fileManagedSettingsPath) {
+			const fileManagedSettingsService = disposables.add(new FileManagedSettingsService(URI.file(fileManagedSettingsPath), fileService, logService));
+			services.set(IFileManagedSettingsService, fileManagedSettingsService);
+		} else {
+			services.set(IFileManagedSettingsService, new NullFileManagedSettingsService());
 		}
 
 		if (policyServices.length > 1) {
