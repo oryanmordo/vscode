@@ -19,6 +19,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { PolicyCategory, PolicyCategoryData } from '../../../../base/common/policy.js';
 import { ExportedPolicyDataDto } from '../common/policyDto.js';
+import { externalPolicyReferences, IExternalPolicyReference } from '../../../../platform/policy/common/externalPolicyReferences.js';
 import { join } from '../../../../base/common/path.js';
 
 interface ExtensionConfigurationPolicyEntry {
@@ -138,19 +139,48 @@ export class PolicyExportContribution extends Disposable implements IWorkbenchCo
 				}
 
 				// Link policyReference settings and enforce type match (same value is applied verbatim).
+				// References come from two sources: settings registered in THIS (workbench) window,
+				// and the static cross-window manifest for settings registered only in other windows
+				// (e.g. the Agents window) that this export process never loads.
 				const policyReferenceConfigurations = configurationRegistry.getPolicyReferenceConfigurations();
+				const externalReferencesByPolicy = new Map<string, IExternalPolicyReference[]>();
+				for (const reference of externalPolicyReferences) {
+					let references = externalReferencesByPolicy.get(reference.policyName);
+					if (!references) {
+						externalReferencesByPolicy.set(reference.policyName, references = []);
+					}
+					references.push(reference);
+				}
+
+				const linkedExternalReferences = new Set<IExternalPolicyReference>();
 				let linkedReferences = 0;
 				for (const policy of policyData.policies) {
-					const references = policyReferenceConfigurations.get(policy.name);
-					if (references && references.size > 0) {
-						for (const referenceKey of references) {
-							const referenceType = configurationProperties[referenceKey]?.type;
-							if (referenceType !== policy.type) {
-								throw new Error(`Policy '${policy.name}': setting '${referenceKey}' (type '${referenceType}') declares a 'policyReference' to a policy of type '${policy.type}'. A 'policyReference' must match the owning setting's type.`);
-							}
+					const referenceKeys = new Set<string>();
+
+					for (const referenceKey of policyReferenceConfigurations.get(policy.name) ?? []) {
+						const referenceType = configurationProperties[referenceKey]?.type;
+						if (referenceType !== policy.type) {
+							throw new Error(`Policy '${policy.name}': setting '${referenceKey}' (type '${referenceType}') declares a 'policyReference' to a policy of type '${policy.type}'. A 'policyReference' must match the owning setting's type.`);
 						}
-						policy.referencedSettings = [...references].sort();
-						linkedReferences += references.size;
+						referenceKeys.add(referenceKey);
+					}
+
+					for (const reference of externalReferencesByPolicy.get(policy.name) ?? []) {
+						if (reference.type !== policy.type) {
+							throw new Error(`Policy '${policy.name}': external setting '${reference.settingKey}' (type '${reference.type}') declares a 'policyReference' to a policy of type '${policy.type}'. A 'policyReference' must match the owning setting's type.`);
+						}
+						referenceKeys.add(reference.settingKey);
+						linkedExternalReferences.add(reference);
+					}
+
+					if (referenceKeys.size > 0) {
+						policy.referencedSettings = [...referenceKeys].sort();
+						linkedReferences += referenceKeys.size;
+					}
+				}
+				for (const reference of externalPolicyReferences) {
+					if (!linkedExternalReferences.has(reference)) {
+						this.log(`External policy reference '${reference.settingKey}' has no owning policy '${reference.policyName}' in the exported catalog; skipping.`);
 					}
 				}
 				this.log(`Linked ${linkedReferences} referenced settings across ${policyData.policies.length} policies.`);

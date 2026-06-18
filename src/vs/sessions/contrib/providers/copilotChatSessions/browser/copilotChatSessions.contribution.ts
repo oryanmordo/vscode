@@ -11,7 +11,12 @@ import '../../copilotChatSessions/browser/copilotChatSessionsActions.js';
 import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
 import { Registry } from '../../../../../platform/registry/common/platform.js';
 import { IConfigurationRegistry, Extensions as ConfigurationExtensions } from '../../../../../platform/configuration/common/configurationRegistry.js';
+import { getExternalPolicyReference } from '../../../../../platform/policy/common/externalPolicyReferences.js';
 import { localize } from '../../../../../nls.js';
+
+// Sourced from the shared cross-window manifest so the runtime gate (here) and the policy
+// export (which runs in the workbench window and cannot see this registration) stay aligned.
+const claudeExternalPolicyReference = getExternalPolicyReference(CLAUDE_CODE_ENABLED_SETTING);
 
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).registerConfiguration({
 	id: 'sessions',
@@ -28,9 +33,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 			experiment: { mode: 'startup' },
 			description: localize('sessions.chat.claudeAgent.enabled', "Enable Claude Agent sessions in the Agents window. Start and resume agentic coding sessions powered by Anthropic's Claude Agent SDK directly. Uses your existing Copilot subscription."),
 			// References the `Claude3PIntegration` policy (owned by `github.copilot.chat.claudeAgent.enabled`) so the Agents window is gated like the editor.
-			policyReference: {
-				name: 'Claude3PIntegration',
-			},
+			...(claudeExternalPolicyReference ? { policyReference: { name: claudeExternalPolicyReference.policyName } } : {}),
 		},
 	},
 });
