@@ -179,6 +179,10 @@ export class NewChatInSessionWidget extends Disposable {
 	attach(uris: URI[]): void {
 		this._newChatInput.attach(uris);
 	}
+
+	attachContext(entries: readonly IChatRequestVariableEntry[]): void {
+		this._newChatInput.attachContext(entries);
+	}
 }
 
 // #endregion

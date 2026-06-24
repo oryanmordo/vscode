@@ -483,6 +483,10 @@ export class NewChatWidget extends Disposable {
 		this._newChatInput.attach(uris);
 	}
 
+	attachContext(entries: readonly IChatRequestVariableEntry[]): void {
+		this._newChatInput.attachContext(entries);
+	}
+
 	selectWorkspace(folderUri: URI, providerId?: string): void {
 		this._workspacePicker.setSelectedWorkspace(folderUri, { providerId });
 	}
