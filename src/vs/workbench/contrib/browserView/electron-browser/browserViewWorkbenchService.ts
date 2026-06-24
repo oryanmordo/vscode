@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { BrowserViewCommandId, BrowserViewStorageScope, IBrowserViewOpenOptions, IBrowserViewOwner, IBrowserViewService, IBrowserViewState, IBrowserViewTheme, ipcBrowserViewChannelName } from '../../../../platform/browserView/common/browserView.js';
-import { IBrowserViewWorkbenchService, IBrowserViewModel, BrowserViewModel, IBrowserEditorViewState, IBrowserViewContextualFilter, IBrowserViewFilterContext, IBrowserViewOpenHandler } from '../common/browserView.js';
+import { IBrowserViewWorkbenchService, IBrowserViewModel, BrowserViewModel, IBrowserEditorViewState, IBrowserViewContextualFilter, IBrowserViewFilterContext, IBrowserViewOpenHandler, IBrowserViewChatAttachmentDelegate } from '../common/browserView.js';
 import { IMainProcessService } from '../../../../platform/ipc/common/mainProcessService.js';
 import { ProxyChannel } from '../../../../base/parts/ipc/common/ipc.js';
 import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
@@ -30,6 +30,7 @@ import { DEFAULT_FONT_FAMILY } from '../../../../base/browser/fonts.js';
 import { findGroup } from '../../../services/editor/common/editorGroupFinder.js';
 import { ChatEditorInput } from '../../chat/browser/widgetHosts/editor/chatEditorInput.js';
 import { IChatWidgetService } from '../../chat/browser/chat.js';
+import { IChatRequestVariableEntry } from '../../chat/common/attachments/chatVariableEntries.js';
 import { URI } from '../../../../base/common/uri.js';
 import { isEqual } from '../../../../base/common/resources.js';
 import { Schemas } from '../../../../base/common/network.js';
@@ -60,6 +61,7 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 	private readonly _known = new Map<string, BrowserEditorInput>();
 	private readonly _contextualFilters = new Set<IBrowserViewContextualFilter>();
 	private readonly _openHandlers = new Set<IBrowserViewOpenHandler>();
+	private readonly _chatAttachmentDelegates = new Set<IBrowserViewChatAttachmentDelegate>();
 	private readonly _mainWindowId: number;
 
 	/** Latest tunnel-proxy credentials pushed from the local extension host. */
@@ -219,6 +221,22 @@ export class BrowserViewWorkbenchService extends Disposable implements IBrowserV
 		return toDisposable(() => {
 			this._openHandlers.delete(handler);
 		});
+	}
+
+	registerChatAttachmentDelegate(delegate: IBrowserViewChatAttachmentDelegate): IDisposable {
+		this._chatAttachmentDelegates.add(delegate);
+		return toDisposable(() => {
+			this._chatAttachmentDelegates.delete(delegate);
+		});
+	}
+
+	attachContextToActiveChatInput(entries: readonly IChatRequestVariableEntry[]): boolean {
+		for (const delegate of this._chatAttachmentDelegates) {
+			if (delegate.attachContextToActiveInput(entries)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	getOrCreateLazy(id: string, initialState?: IBrowserEditorViewState, model?: IBrowserViewModel): BrowserEditorInput {

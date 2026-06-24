@@ -12,7 +12,7 @@ import { IObservable } from '../../../base/common/observable.js';
 import { URI } from '../../../base/common/uri.js';
 import { defaultProgressBarStyles } from '../../../platform/theme/browser/defaultStyles.js';
 import { IProgressScope, ScopedProgressIndicator } from '../../../workbench/services/progress/browser/progressIndicator.js';
-import { IChat } from '../../services/sessions/common/session.js';
+import { IChat, IChatRequestVariableEntry } from '../../services/sessions/common/session.js';
 
 /**
  * Discriminates between concrete {@link AbstractChatView} subclasses without
@@ -111,6 +111,17 @@ export abstract class AbstractChatView extends Disposable implements ISerializab
 	 * (e.g. `ChatView`) override this to add the attachments to the widget.
 	 */
 	attach(_uris: URI[]): void {
+		// no-op by default
+	}
+
+	/**
+	 * Attach the given context entries to this view's chat input. Unlike
+	 * {@link attach}, which only takes file resources, this accepts arbitrary
+	 * chat variable entries (e.g. browser elements, screenshots and console
+	 * logs from the integrated browser). The default implementation is a
+	 * no-op; subclasses that host a chat input override this.
+	 */
+	attachContext(_entries: readonly IChatRequestVariableEntry[]): void {
 		// no-op by default
 	}
 

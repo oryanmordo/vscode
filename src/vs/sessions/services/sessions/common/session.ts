@@ -12,6 +12,11 @@ import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 import { IChatSessionFileChange, IChatSessionFileChange2, isIChatSessionFileChange2 } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
 
+// Re-export the chat context-entry type at the sessions service boundary so the
+// core sessions layer (`vs/sessions/browser`) can reference attachment entries
+// without importing from `vs/workbench/contrib` directly.
+export type { IChatRequestVariableEntry } from '../../../../workbench/contrib/chat/common/attachments/chatVariableEntries.js';
+
 export interface ISessionType {
 	/** Unique identifier (e.g., 'copilot-cli', 'copilot-cloud', 'claude-code'). */
 	readonly id: string;

@@ -27,7 +27,7 @@ import { IChatService } from '../../../chat/common/chatService/chatService.js';
 import { IChatRequestVariableEntry } from '../../../chat/common/attachments/chatVariableEntries.js';
 import { ChatContextKeys } from '../../../chat/common/actions/chatContextKeys.js';
 import { IElementData, IElementAncestor, BrowserViewCommandId } from '../../../../../platform/browserView/common/browserView.js';
-import { IBrowserViewModel, BrowserViewSharingState } from '../../../browserView/common/browserView.js';
+import { IBrowserViewModel, BrowserViewSharingState, IBrowserViewWorkbenchService } from '../../../browserView/common/browserView.js';
 import { BrowserEditorInput } from '../../common/browserEditorInput.js';
 import { Button } from '../../../../../base/browser/ui/button/button.js';
 import { WorkbenchHoverDelegate } from '../../../../../platform/hover/browser/hover.js';
@@ -132,6 +132,7 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 		@IDialogService private readonly dialogService: IDialogService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IWorkspaceTrustManagementService private readonly workspaceTrustManagementService: IWorkspaceTrustManagementService,
+		@IBrowserViewWorkbenchService private readonly browserViewWorkbenchService: IBrowserViewWorkbenchService,
 	) {
 		super(editor);
 		this._elementSelectionActiveContext = CONTEXT_BROWSER_ELEMENT_SELECTION_ACTIVE.bindTo(contextKeyService);
@@ -300,6 +301,16 @@ export class BrowserEditorChatIntegration extends BrowserEditorContribution {
 	 * Callers are responsible for running {@link _confirmContentAttachmentRisk} first.
 	 */
 	private async _attachToChat(entries: readonly IChatRequestVariableEntry[]): Promise<boolean> {
+		// Prefer a host-provided attachment delegate. In the Agents window this
+		// routes the entries to the active session's chat input, which on the
+		// new-chat view (before the first message) is a `NewChatInputWidget` —
+		// not a registered `IChatWidget`, so it cannot be found through
+		// `IChatWidgetService`. In the standard workbench no delegate is
+		// registered and we fall back to the chat widget below.
+		if (this.browserViewWorkbenchService.attachContextToActiveChatInput(entries)) {
+			return true;
+		}
+
 		const widget = await this._revealChatWidgetForAttachment();
 		if (!widget?.attachmentModel) {
 			return false;

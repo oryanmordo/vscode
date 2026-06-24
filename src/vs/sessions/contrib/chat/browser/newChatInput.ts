@@ -720,6 +720,10 @@ export class NewChatInputWidget extends Disposable implements IHistoryNavigation
 	attach(uris: URI[]): void {
 		this._contextAttachments.addAttachments(...uris.map(uri => toFileVariableEntry(uri)));
 	}
+
+	attachContext(entries: readonly IChatRequestVariableEntry[]): void {
+		this._contextAttachments.addAttachments(...entries);
+	}
 }
 
 // #endregion

@@ -11,6 +11,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { CDPEvent, CDPRequest, CDPResponse } from '../../../../platform/browserView/common/cdp/types.js';
 import { ITunnelProxyInfo } from '../../../../platform/tunnel/common/tunnelProxy.js';
+import { IChatRequestVariableEntry } from '../../chat/common/attachments/chatVariableEntries.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { localize } from '../../../../nls.js';
@@ -197,6 +198,25 @@ export interface IBrowserViewOpenHandler {
 }
 
 /**
+ * A delegate that attaches chat context entries to the host's active chat
+ * input. Registered via
+ * {@link IBrowserViewWorkbenchService.registerChatAttachmentDelegate}.
+ *
+ * Used by the Agents window so the integrated browser's "Add Element to Chat"
+ * (and the related console-log / screenshot actions) can target the active
+ * session's chat input even on the new-chat view, where the input is not a
+ * registered `IChatWidget` and therefore cannot be found through
+ * `IChatWidgetService`.
+ */
+export interface IBrowserViewChatAttachmentDelegate {
+	/**
+	 * Attach the given context entries to the host's active chat input.
+	 * Returns `true` if the entries were attached.
+	 */
+	attachContextToActiveInput(entries: readonly IChatRequestVariableEntry[]): boolean;
+}
+
+/**
  * Workbench-level service for browser views that provides model-based access to browser views.
  * This service manages browser view models that proxy to the main process browser view service.
  */
@@ -256,6 +276,23 @@ export interface IBrowserViewWorkbenchService {
 	 * registered handler allows it.
 	 */
 	registerOpenHandler(handler: IBrowserViewOpenHandler): IDisposable;
+
+	/**
+	 * Register a delegate that attaches chat context entries to the host's
+	 * active chat input. Used by the Agents window so the integrated browser
+	 * can target the active session's input even before a chat widget exists
+	 * (the new-chat view). Returns a disposable that unregisters the delegate.
+	 */
+	registerChatAttachmentDelegate(delegate: IBrowserViewChatAttachmentDelegate): IDisposable;
+
+	/**
+	 * Attempt to attach the given chat context entries to the host's active
+	 * chat input via a registered {@link IBrowserViewChatAttachmentDelegate}.
+	 * Returns `true` if a delegate handled the attachment, `false` otherwise
+	 * (e.g. in the standard workbench, where callers should fall back to
+	 * attaching through `IChatWidgetService`).
+	 */
+	attachContextToActiveChatInput(entries: readonly IChatRequestVariableEntry[]): boolean;
 
 	/**
 	 * Get an existing browser view for the given ID, or create a new one if it doesn't exist.

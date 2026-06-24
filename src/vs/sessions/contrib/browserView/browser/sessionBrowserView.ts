@@ -13,6 +13,8 @@ import { IEditorGroupsService } from '../../../../workbench/services/editor/comm
 import { ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
 import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
 import { ISession } from '../../../services/sessions/common/session.js';
+import { ISessionsPartService } from '../../../services/sessions/browser/sessionsPartService.js';
+import { IChatRequestVariableEntry } from '../../../../workbench/contrib/chat/common/attachments/chatVariableEntries.js';
 import { runOnChange } from '../../../../base/common/observable.js';
 
 export class SessionBrowserViewController extends Disposable implements IWorkbenchContribution {
@@ -31,6 +33,7 @@ export class SessionBrowserViewController extends Disposable implements IWorkben
 		@IBrowserViewWorkbenchService private readonly _browserViewService: IBrowserViewWorkbenchService,
 		@IEditorService private readonly _editorService: IEditorService,
 		@IEditorGroupsService private readonly _editorGroupsService: IEditorGroupsService,
+		@ISessionsPartService private readonly _sessionsPartService: ISessionsPartService,
 	) {
 		super();
 
@@ -80,6 +83,25 @@ export class SessionBrowserViewController extends Disposable implements IWorkben
 				}
 				const activeSessionResource = this._sessionsService.activeSession.read(undefined)?.resource.toString();
 				return owner.sessionId === activeSessionResource;
+			},
+		}));
+
+		// Route integrated-browser chat attachments (Add Element to Chat,
+		// console logs, screenshots) to the active session's chat input. The
+		// integrated browser cannot find the input through `IChatWidgetService`
+		// on the new-chat view (it hosts a `NewChatInputWidget`, not a
+		// registered `IChatWidget`), so we route the entries here instead. The
+		// visible browser view is contextually filtered to the active session,
+		// so the active session is the owning session.
+		this._register(this._browserViewService.registerChatAttachmentDelegate({
+			attachContextToActiveInput: (entries: readonly IChatRequestVariableEntry[]) => {
+				const sessionId = this._sessionsService.activeSession.read(undefined)?.sessionId;
+				const view = this._sessionsPartService.getSessionView(sessionId);
+				if (!view) {
+					return false;
+				}
+				view.attachContext(entries);
+				return true;
 			},
 		}));
 

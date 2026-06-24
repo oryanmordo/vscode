@@ -22,7 +22,7 @@ import { ISessionContext, SessionContext } from '../../services/sessions/browser
 import { autorun, observableValue } from '../../../base/common/observable.js';
 import { SessionIsArchivedContext, SessionIsCreatedContext, SessionIsMaximizedContext, SessionIsReadContext, SessionIsStickyContext, SessionSupportsMultipleChatsContext, ChatSessionProviderIdContext, ChatSessionTypeContext, SessionHasChangesContext } from '../../common/contextkeys.js';
 import { activeSessionViewBackground, activeSessionViewForeground, inactiveSessionViewBackground, inactiveSessionViewForeground } from '../../common/theme.js';
-import { SessionStatus } from '../../services/sessions/common/session.js';
+import { SessionStatus, IChatRequestVariableEntry } from '../../services/sessions/common/session.js';
 
 /**
  * Options passed to {@link SessionView.openSession}. Extends the chat view
@@ -302,6 +302,15 @@ export class SessionView extends Disposable implements ISerializableView {
 	 */
 	attach(uris: URI[]): void {
 		this._currentView.value?.attach(uris);
+	}
+
+	/**
+	 * Attaches the given context entries (e.g. browser elements, screenshots
+	 * or console logs from the integrated browser) as context to the hosted
+	 * chat view's input.
+	 */
+	attachContext(entries: readonly IChatRequestVariableEntry[]): void {
+		this._currentView.value?.attachContext(entries);
 	}
 
 	/**

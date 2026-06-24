@@ -14,6 +14,7 @@ import { ServiceCollection } from '../../../../platform/instantiation/common/ser
 import { EDITOR_DRAG_AND_DROP_BACKGROUND } from '../../../../workbench/common/theme.js';
 import { ChatWidget } from '../../../../workbench/contrib/chat/browser/widget/chatWidget.js';
 import { IChatModelReference, IChatService } from '../../../../workbench/contrib/chat/common/chatService/chatService.js';
+import { IChatRequestVariableEntry } from '../../../../workbench/contrib/chat/common/attachments/chatVariableEntries.js';
 import { ChatAgentLocation, ChatModeKind } from '../../../../workbench/contrib/chat/common/constants.js';
 import { getChatSessionType } from '../../../../workbench/contrib/chat/common/model/chatUri.js';
 import { IChatSessionsService, localChatSessionType } from '../../../../workbench/contrib/chat/common/chatSessionsService.js';
@@ -86,6 +87,10 @@ export class NewChatView extends AbstractChatView {
 
 	override attach(uris: URI[]): void {
 		this._widget.attach(uris);
+	}
+
+	override attachContext(entries: readonly IChatRequestVariableEntry[]): void {
+		this._widget.attachContext(entries);
 	}
 }
 
@@ -251,6 +256,10 @@ export class ChatView extends AbstractChatView {
 		for (const uri of uris) {
 			this._widget.attachmentModel.addFile(uri).catch(err => this.logService.error('[ChatView] Failed to attach file as context', err));
 		}
+	}
+
+	override attachContext(entries: readonly IChatRequestVariableEntry[]): void {
+		this._widget.attachmentModel.addContext(...entries);
 	}
 
 	override setActive(active: boolean): void {
